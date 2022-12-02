@@ -3,6 +3,8 @@ import csv
 import requests
 import json
 
+RANK_LENGTH = 100
+
 # Below is csv manipulation process
 Netflix_File = open("BestMoviesNetflix.csv")
 netflix_reader = csv.reader(Netflix_File)
@@ -15,7 +17,7 @@ for row in netflix_reader:
 ROWS.pop(0)
 # Find top ranking 100 movie names
 TOP_100_NAME = []
-for i in range(100):
+for i in range(RANK_LENGTH):
     TOP_100_NAME.append(ROWS[i][0])
 # print(TOP_100_NAME) # This is used for testing
 
@@ -52,9 +54,11 @@ with open('DataCache.json','w') as f:
     f.close()
 
 # Below is to define a class of tree for later use
-class MOVIE():
-    def __init__(self, json_dict="None", ranking="None", title="None",  year="None" ):
+class MOVIE_TREE():
+    def __init__(self, json_dict="None", ranking="None", title="None",  year="None", child_left="None", child_right="None"):
         self.ranking = ranking
+        self.child_left = child_left
+        self.child_right = child_right
         try:
             self.title = json_dict["Title"]
             self.year = json_dict["Year"]
@@ -62,20 +66,62 @@ class MOVIE():
             self.title = title
             self.year = year
 
+    def append_tree(self, new_movie):
+        if new_movie.ranking > self.ranking:
+            if self.child_right == "None":
+                self.child_right = new_movie
+            else:
+                self.child_right.append_tree(new_movie)
+        else:
+            if self.child_left == "None":
+                self.child_left = new_movie
+            else:
+                self.child_left.append_tree(new_movie)
+
+# This function is used to print a tree in ranking order
+def print_tree(movie_tree):
+    if movie_tree.child_left != "None":
+        print_tree(movie_tree.child_left)
+
+    print_song_info(movie_tree)
+    
+    if movie_tree.child_right != "None":
+        print_tree(movie_tree.child_right)
+    else:
+        return
+
+# This function is used for testing tree generation correctness
+def test_tree(movie_tree):
+    print_song_info(movie_tree)
+    if movie_tree.child_left != "None":
+        test_tree(movie_tree.child_left)
+    if movie_tree.child_right != "None":
+        test_tree(movie_tree.child_right)
+
+
 # This function prints class info
 def print_song_info(movie):
     print("The Title is: ", movie.title)
     print("The Ranking is: ", movie.ranking)
 
-MOVIE_TREE = []
+VALID_MOVIE_LIST = []
 for i in range(len(json_list_of_dict)):
     # print(json_list_of_dict[i]) # This is for testing
     try:
-        NEWMOVIE = MOVIE(json_list_of_dict[i], i+1)
-        print_song_info(NEWMOVIE)
+        NEWMOVIE = MOVIE_TREE(json_list_of_dict[i], i+1)
+        # print_song_info(NEWMOVIE)
+        VALID_MOVIE_LIST.append(NEWMOVIE)
     except:
         print("Song Not Found!")
 
+tree_root = VALID_MOVIE_LIST[round(len(json_list_of_dict)/2)]
+VALID_MOVIE_LIST.pop(round(len(json_list_of_dict)/2))
+
+for movie in VALID_MOVIE_LIST:
+    tree_root.append_tree(movie)
+
+print_tree(tree_root)
+# test_tree(tree_root)
 
 
 
